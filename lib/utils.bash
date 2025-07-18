@@ -2,8 +2,7 @@
 
 set -euo pipefail
 
-# TODO: Ensure this is the correct GitHub homepage where releases can be downloaded for gomplate.
-GH_REPO="https://github.com/sneakybeaky/gomplate"
+GH_REPO="https://github.com/hairyhenderson/gomplate"
 TOOL_NAME="gomplate"
 TOOL_TEST="gomplate -v"
 
@@ -31,21 +30,32 @@ list_github_tags() {
 }
 
 list_all_versions() {
-	# TODO: Adapt this. By default we simply list the tag names from GitHub releases.
 	# Change this function if gomplate has other means of determining installable versions.
 	list_github_tags
 }
+get_filename() {
+    local binary_name="$1"
+    local platform="$2"
+    local arch_name="$3"
+
+    echo "${binary_name}_${platform}-${arch_name}"
+}
 
 download_release() {
-	local version filename url
+	local version destination url platform arch_name filename
 	version="$1"
-	filename="$2"
+	destination="$2"
 
-	# TODO: Adapt the release URL convention for gomplate
-	url="$GH_REPO/archive/v${version}.tar.gz"
+	platform="$(get_platform)"
+	arch_name="$(get_arch)"
+
+	filename="$(get_filename $TOOL_NAME "${platform}" "${arch_name}")"
+
+	# TODO: Adapt the release URL convention for gomplate https://github.com/hairyhenderson/gomplate/releases/download/v4.3.3/gomplate_linux-armv6
+	url="$GH_REPO/releases/download/v${version}/${filename}"
 
 	echo "* Downloading $TOOL_NAME release $version..."
-	curl "${curl_opts[@]}" -o "$filename" -C - "$url" || fail "Could not download $url"
+	curl "${curl_opts[@]}" -o "$destination" -C - "$url" || fail "Could not download $url"
 }
 
 install_version() {
@@ -71,4 +81,22 @@ install_version() {
 		rm -rf "$install_path"
 		fail "An error occurred while installing $TOOL_NAME $version."
 	)
+}
+get_platform() {
+    uname | tr '[:upper:]' '[:lower:]'
+}
+
+get_arch() {
+    local arch
+    if [ "$(uname -m)" = "x86_64" ]; then
+        arch="amd64"
+    elif [ "$(uname -m)" = "aarch64" ]; then
+        arch="arm"
+    elif [ "$(uname -m)" = "arm64" ]; then
+        arch="arm64"
+    else
+        arch="386"
+    fi
+
+    echo "${arch}"
 }
